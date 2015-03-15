@@ -48,13 +48,17 @@ updatedMap = QuadTree.insert unit worldMap
 updatededMap = QuadTree.insert unit2 updatedMap
 --result = QuadTree.findItems ({class = Peon, boundingBox = QuadTree.boundingBox 4 5 4 5}) updatedMap
 
---containerView : Graphics.Element
-
 viewUnit : Unit (QuadTree.Bounded {}) -> Graphics.Collage.Form
-viewUnit u = Graphics.Collage.move (u.boundingBox.horizontal.low, u.boundingBox.vertical.low) (Graphics.Collage.filled Color.red (Graphics.Collage.circle 10))
+viewUnit u = Graphics.Collage.circle 10
+             |> Graphics.Collage.filled Color.purple
+             |> Graphics.Collage.move (u.boundingBox.horizontal.low, u.boundingBox.vertical.low)
 
 view : QuadTree.QuadTree (MapEntity (QuadTree.Bounded {})) -> Graphics.Element.Element
-view tree = Graphics.Collage.collage 500 500 (List.map viewUnit (Array.toList (QuadTree.getAllItems tree)))
+view tree = tree
+            |> QuadTree.getAllItems
+            |> Array.toList
+            |> List.map viewUnit
+            |> Graphics.Collage.collage 500 500
 
 main : Graphics.Element.Element
 main = view updatededMap

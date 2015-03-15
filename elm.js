@@ -1870,27 +1870,21 @@ Elm.Main.make = function (_elm) {
    _P = _N.Ports.make(_elm),
    $moduleName = "Main",
    $Array = Elm.Array.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
    $Color = Elm.Color.make(_elm),
    $Graphics$Collage = Elm.Graphics.Collage.make(_elm),
    $Graphics$Element = Elm.Graphics.Element.make(_elm),
    $List = Elm.List.make(_elm),
    $QuadTree = Elm.QuadTree.make(_elm);
    var viewUnit = function (u) {
-      return A2($Graphics$Collage.move,
-      {ctor: "_Tuple2"
-      ,_0: u.boundingBox.horizontal.low
-      ,_1: u.boundingBox.vertical.low},
-      A2($Graphics$Collage.filled,
-      $Color.red,
-      $Graphics$Collage.circle(10)));
+      return $Graphics$Collage.move({ctor: "_Tuple2"
+                                    ,_0: u.boundingBox.horizontal.low
+                                    ,_1: u.boundingBox.vertical.low})($Graphics$Collage.filled($Color.purple)($Graphics$Collage.circle(10)));
    };
    var view = function (tree) {
-      return A3($Graphics$Collage.collage,
+      return A2($Graphics$Collage.collage,
       500,
-      500,
-      A2($List.map,
-      viewUnit,
-      $Array.toList($QuadTree.getAllItems(tree))));
+      500)($List.map(viewUnit)($Array.toList($QuadTree.getAllItems(tree))));
    };
    var worldMap = A2($QuadTree.emptyQuadTree,
    {_: {}
