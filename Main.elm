@@ -6,27 +6,37 @@ import Graphics.Collage
 import List
 import Color
 import Array
+import Signal
+import Time
 
---type alias Coord = (Int, Int)
+
+------- Signals / Updates ------------
+
+type Update = TimeDelta Float
+
+inputs : Signal Update
+inputs = Signal.map TimeDelta (Time.fps 30)
+
+
+------------ Model -------------------
 
 type Class = Peon | Warrior
 
-type alias Unit a =
-  { a |
-    class : Class
+type alias Unit =
+  { class : Class
   }
 
-type alias Map a = QuadTree.QuadTree a
-type alias MapEntity a = Unit a
+type alias MapEntity = QuadTree.Bounded Unit
+type alias Map       = QuadTree.QuadTree MapEntity
 
-worldMap : Map (MapEntity (QuadTree.Bounded {}))
-worldMap = QuadTree.emptyQuadTree
+emptyMap : Map
+emptyMap = QuadTree.emptyQuadTree
   { horizontal  = { high = 100, low = 0 }
   , vertical    = { high = 100, low = 0 }
   }
   10
 
-unit : Unit (QuadTree.Bounded {})
+unit : QuadTree.Bounded Unit
 unit =
   { class = Peon
   , boundingBox =
@@ -35,25 +45,30 @@ unit =
     }
   }
 
-unit2 : Unit (QuadTree.Bounded {})
+unit2 : QuadTree.Bounded Unit
 unit2 =
-  { class = Peon
+  { class = Warrior
   , boundingBox = QuadTree.boundingBox 95 98 95 98
   }
 
 
 
 
-updatedMap = QuadTree.insert unit worldMap
+updatedMap = QuadTree.insert unit emptyMap
 updatededMap = QuadTree.insert unit2 updatedMap
---result = QuadTree.findItems ({class = Peon, boundingBox = QuadTree.boundingBox 4 5 4 5}) updatedMap
+result = QuadTree.findItems ({class = Peon, boundingBox = QuadTree.boundingBox 4 5 4 5}) updatededMap
 
-viewUnit : Unit (QuadTree.Bounded {}) -> Graphics.Collage.Form
-viewUnit u = Graphics.Collage.circle 10
-             |> Graphics.Collage.filled Color.purple
+viewUnit : MapEntity -> Graphics.Collage.Form
+viewUnit u =
+    case u.class of
+      Peon -> Graphics.Collage.circle 10
+             |> Graphics.Collage.filled Color.blue
              |> Graphics.Collage.move (u.boundingBox.horizontal.low, u.boundingBox.vertical.low)
+      Warrior -> Graphics.Collage.circle 15
+                 |> Graphics.Collage.filled Color.red
+                 |> Graphics.Collage.move (u.boundingBox.horizontal.low, u.boundingBox.vertical.low)
 
-view : QuadTree.QuadTree (MapEntity (QuadTree.Bounded {})) -> Graphics.Element.Element
+view : Map -> Graphics.Element.Element
 view tree = tree
             |> QuadTree.getAllItems
             |> Array.toList
@@ -64,13 +79,28 @@ main : Graphics.Element.Element
 main = view updatededMap
 
 
---type alias GameState =
---  { units   : List Unit
---  , worldMap     :
---  }
+type alias GameState =
+  { units   : List Unit
+  , map     : Map
+  }
 
---defaultGame : GameState
---defaultGame =
---    {}
+defaultGame : GameState
+defaultGame =
+    { units = []
+    , map   = emptyMap
+    }
+
+
+--stepGame : Update -> GameState -> GameState
+--stepGame
+
+
+
+
+
+
+
+
+
 
 
