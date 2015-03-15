@@ -7,15 +7,16 @@ import List
 import Color
 import Array
 import Signal
+import Signal (Signal)
 import Time
 
 
-------- Signals / Updates ------------
+------------ Signals -------------------
 
 type Update = TimeDelta Float
 
 inputs : Signal Update
-inputs = Signal.map TimeDelta (Time.fps 30)
+inputs = Signal.map TimeDelta (Time.fps 3)
 
 
 ------------ Model -------------------
@@ -34,7 +35,7 @@ emptyMap = QuadTree.emptyQuadTree
   { horizontal  = { high = 100, low = 0 }
   , vertical    = { high = 100, low = 0 }
   }
-  10
+  15
 
 unit : QuadTree.Bounded Unit
 unit =
@@ -58,25 +59,28 @@ updatedMap = QuadTree.insert unit emptyMap
 updatededMap = QuadTree.insert unit2 updatedMap
 result = QuadTree.findItems ({class = Peon, boundingBox = QuadTree.boundingBox 4 5 4 5}) updatededMap
 
+
+------------ Rendering -------------------
+
 viewUnit : MapEntity -> Graphics.Collage.Form
 viewUnit u =
     case u.class of
       Peon -> Graphics.Collage.circle 10
-             |> Graphics.Collage.filled Color.blue
+             |> Graphics.Collage.filled (Color.rgba 20 20 200 0.2)
              |> Graphics.Collage.move (u.boundingBox.horizontal.low, u.boundingBox.vertical.low)
       Warrior -> Graphics.Collage.circle 15
                  |> Graphics.Collage.filled Color.red
                  |> Graphics.Collage.move (u.boundingBox.horizontal.low, u.boundingBox.vertical.low)
 
-view : Map -> Graphics.Element.Element
-view tree = tree
+view : GameState -> Graphics.Element.Element
+view tree = tree.map
             |> QuadTree.getAllItems
             |> Array.toList
             |> List.map viewUnit
             |> Graphics.Collage.collage 500 500
 
-main : Graphics.Element.Element
-main = view updatededMap
+--main : Graphics.Element.Element
+--main = view updatededMap
 
 
 type alias GameState =
@@ -91,10 +95,17 @@ defaultGame =
     }
 
 
---stepGame : Update -> GameState -> GameState
---stepGame
+stepGame : Update -> GameState -> GameState
+stepGame update state = {state | map <- (QuadTree.insert unit state.map)}
 
 
+gameState : Signal GameState
+gameState =
+    Signal.foldp stepGame defaultGame inputs
+
+main : Signal Graphics.Element.Element
+main =
+    Signal.map view gameState
 
 
 
