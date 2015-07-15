@@ -9,7 +9,10 @@ import Array
 import Signal
 import Signal (Signal)
 import Time
+import Debug
 
+worldWidth  = 500
+worldHeight = 500
 
 ------------ Signals -------------------
 
@@ -21,23 +24,21 @@ inputs = Signal.map TimeDelta (Time.fps 3)
 
 ------------ Model -------------------
 
-type Class = Peon | Warrior
+type UnitClass = Peon | Warrior
 
-type alias Unit =
-  { class : Class
-  }
+type alias Unit = QuadTree.Bounded {class : UnitClass}
 
-type alias MapEntity = QuadTree.Bounded Unit
+type alias MapEntity = Unit
 type alias Map       = QuadTree.QuadTree MapEntity
 
 emptyMap : Map
 emptyMap = QuadTree.emptyQuadTree
-  { horizontal  = { high = 100, low = 0 }
-  , vertical    = { high = 100, low = 0 }
+  { horizontal  = { high = worldWidth,  low = 0 }
+  , vertical    = { high = worldHeight, low = 0 }
   }
-  15
+  100000
 
-unit : QuadTree.Bounded Unit
+unit : Unit
 unit =
   { class = Peon
   , boundingBox =
@@ -46,10 +47,10 @@ unit =
     }
   }
 
-unit2 : QuadTree.Bounded Unit
+unit2 : Unit
 unit2 =
   { class = Warrior
-  , boundingBox = QuadTree.boundingBox 95 98 95 98
+  , boundingBox = QuadTree.boundingBox 95 125 95 125
   }
 
 
@@ -67,17 +68,17 @@ viewUnit u =
     case u.class of
       Peon -> Graphics.Collage.circle 10
              |> Graphics.Collage.filled (Color.rgba 20 20 200 0.2)
-             |> Graphics.Collage.move (u.boundingBox.horizontal.low, u.boundingBox.vertical.low)
+             |> Graphics.Collage.move (u.boundingBox.horizontal.high, u.boundingBox.vertical.high)
       Warrior -> Graphics.Collage.circle 15
-                 |> Graphics.Collage.filled Color.red
-                 |> Graphics.Collage.move (u.boundingBox.horizontal.low, u.boundingBox.vertical.low)
+                 |> Graphics.Collage.filled (Color.rgba 200 20 20 0.2)
+                 |> Graphics.Collage.move (u.boundingBox.horizontal.high, u.boundingBox.vertical.high)
 
 view : GameState -> Graphics.Element.Element
 view tree = tree.map
             |> QuadTree.getAllItems
             |> Array.toList
             |> List.map viewUnit
-            |> Graphics.Collage.collage 500 500
+            |> Graphics.Collage.collage worldWidth worldHeight
 
 --main : Graphics.Element.Element
 --main = view updatededMap
@@ -94,24 +95,33 @@ defaultGame =
     , map   = emptyMap
     }
 
+stepUnit : Unit -> Unit
+stepUnit unit =
+    let newXHigh = min (worldWidth / 2) (unit.boundingBox.horizontal.high + 3)
+        newXLow  = newXHigh - (QuadTree.width unit.boundingBox)
+        newYHigh = min (worldHeight / 2) (unit.boundingBox.vertical.high + 3)
+        newYLow  = newYHigh - (QuadTree.width unit.boundingBox)
+    in
+        Debug.watch "new unit" {unit | boundingBox <- QuadTree.boundingBox newXLow newXHigh newYLow newYHigh}
 
 stepGame : Update -> GameState -> GameState
-stepGame update state = {state | map <- (QuadTree.insert unit state.map)}
+stepGame update state =
+    let newUnit         = unit
+        updatedUnits    = Debug.watch "new unit list" (newUnit :: (List.map stepUnit state.units))
+        --unitUpdatePairs = List.map2 (,) state.units updatedUnits
+        newMap          = List.foldl (QuadTree.update stepUnit) state.map updatedUnits
+    in
+        { state |
+          units <- updatedUnits
+        , map   <- QuadTree.insert newUnit newMap
+        }
 
 
 gameState : Signal GameState
 gameState =
     Signal.foldp stepGame defaultGame inputs
 
+
+
 main : Signal Graphics.Element.Element
-main =
-    Signal.map view gameState
-
-
-
-
-
-
-
-
-
+main = Signal.map view gameState
